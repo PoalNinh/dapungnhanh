@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Danh sách đội</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2c3e50;
+            --background-color: #f5f7fa;
+            --text-color: #333;
+            --border-color: #e0e0e0;
+            --hover-color: #f1f3f5;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--background-color);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        h1 {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            font-size: 28px;
+            font-weight: 500;
+            margin-bottom: 30px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .controls {
+            padding: 0 30px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        select, button {
+            padding: 12px 20px;
+            font-size: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background-color: white;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        select {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url('data:image/svg+xml;utf8,<svg fill="%23333" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>');
+            background-repeat: no-repeat;
+            background-position-x: calc(100% - 12px);
+            background-position-y: center;
+            padding-right: 40px;
+        }
+
+        select:focus, button:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            margin-left: 10px;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            padding: 0 30px 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        th, td {
+            padding: 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background-color: var(--secondary-color);
+            color: white;
+            font-weight: 500;
+            text-transform: uppercase;
+            font-size: 14px;
+            letter-spacing: 0.5px;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        tr:hover {
+            background-color: var(--hover-color);
+        }
+
+        @media screen and (max-width: 768px) {
+            h1 {
+                font-size: 24px;
+                padding: 20px;
+            }
+
+            th, td {
+                padding: 12px;
+                font-size: 14px;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            select, button {
+                margin-bottom: 15px;
+                width: 100%;
+            }
+
+            button {
+                margin-left: 0;
+            }
+        }
+
+        @media screen and (max-width: 480px) {
+            .container {
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 20px;
+                padding: 15px;
+            }
+
+            th, td {
+                padding: 10px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Danh sách đội</h1>
+        <div class="controls">
+            <select id="teamSelect">
+                <option value="all">Tất cả các đội</option>
+            </select>
+            <button id="exportExcel">Xuất Excel</button>
+        </div>
+        <div class="table-container">
+            <table id="dataTable">
+                <thead>
+                    <tr>
+                        <th>Họ và Tên</th>
+                        <th>Địa chỉ (khoa phòng)</th>
+                        <th>Chức vụ</th>
+                        <th>Giới tính</th>
+                        <th>Số điện thoại</th>
+                        <th>Email</th>
+                        <th>Người thân - SĐT</th>
+                        <th>Đội</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Table body will be populated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const APP_ID = '818e01f4-30fe-48a1-868e-528592ff284a';
+        const API_KEY = 'V2-5AUsf-1rL57-5TBzx-vGKND-o4PXj-0uztX-bHs2M-SOTDM';
+        const SHEET_NAME_2 = 'DSNV';
+        let allData = [];
+        let filteredData = [];
+
+        function apiRequest(tableName, action, data) {
+            const apiUrl = `https://www.appsheet.com/api/v2/apps/${APP_ID}/tables/${tableName}/Action`;
+            return fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'ApplicationAccessKey': API_KEY,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    Action: action,
+                    Properties: {
+                        Locale: 'vi-VN',
+                        Timezone: 'Asia/Ho_Chi_Minh'
+                    },
+                    ...data
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Lỗi HTTP! trạng thái: ${response.status}`);
+                }
+                return response.json();
+            });
+        }
+
+        function loadData() {
+            apiRequest('DSNV', 'Find', { Rows: [], Properties: { Selector: 'Filter(DSNV, true)' } })
+                .then(response => {
+                    console.log('Phản hồi API:', response);
+                    if (Array.isArray(response) && response.length > 0) {
+                        allData = response;
+                        filteredData = allData;
+                        populateTeamSelect();
+                        populateTable(filteredData);
+                    } else {
+                        console.error('Lỗi khi tải dữ liệu: Cấu trúc phản hồi không mong đợi', response);
+                        document.querySelector('#dataTable tbody').innerHTML = '<tr><td colspan="8">Lỗi khi tải dữ liệu. Vui lòng thử lại sau.</td></tr>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Lỗi trong yêu cầu API:', error);
+                    document.querySelector('#dataTable tbody').innerHTML = '<tr><td colspan="8">Lỗi kết nối đến máy chủ. Vui lòng kiểm tra kết nối internet và thử lại.</td></tr>';
+                });
+        }
+
+        function populateTeamSelect() {
+            const teamSelect = document.getElementById('teamSelect');
+            const teams = [...new Set(allData.map(item => item['Đội']))].sort();
+            
+            teams.forEach(team => {
+                if (team) {
+                    const option = document.createElement('option');
+                    option.value = team;
+                    option.textContent = team;
+                    teamSelect.appendChild(option);
+                }
+            });
+
+            teamSelect.addEventListener('change', filterData);
+        }
+
+        function filterData() {
+            const selectedTeam = document.getElementById('teamSelect').value;
+            if (selectedTeam === 'all') {
+                filteredData = allData;
+            } else {
+                filteredData = allData.filter(item => item['Đội'] === selectedTeam);
+            }
+            populateTable(filteredData);
+        }
+
+        function populateTable(data) {
+            const tableBody = document.querySelector('#dataTable tbody');
+            tableBody.innerHTML = '';
+            data.forEach(item => {
+                const row = tableBody.insertRow();
+                row.insertCell().textContent = item['Họ và Tên'] || '';
+                row.insertCell().textContent = item['Địa chỉ(khoa phòng)'] || '';
+                row.insertCell().textContent = item['Chức vụ'] || '';
+                row.insertCell().textContent = item['Giới tính'] || '';
+                row.insertCell().textContent = item['Số điện thoại'] || '';
+                row.insertCell().textContent = item['Email'] || '';
+                row.insertCell().textContent = item['Người thân - SĐT'] || '';
+                row.insertCell().textContent = item['Đội'] || '';
+            });
+        }
+
+        function exportToExcel() {
+            const selectedTeam = document.getElementById('teamSelect').value;
+            const headers = ['Họ và Tên', 'Địa chỉ (khoa phòng)', 'Chức vụ', 'Giới tính', 'Số điện thoại', 'Email', 'Người thân - SĐT', 'Đội'];
+            const dataToExport = filteredData.map(item => [
+                item['Họ và Tên'] || '',
+                item['Địa chỉ(khoa phòng)'] || '',
+                item['Chức vụ'] || '',
+                item['Giới tính'] || '',
+                item['Số điện thoại'] || '',
+                item['Email'] || '',
+                item['Người thân - SĐT'] || '',
+                item['Đội'] || ''
+            ]);
+            
+            const ws = XLSX.utils.aoa_to_sheet([headers, ...dataToExport]);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Danh sách đội");
+            
+            const fileName = selectedTeam === 'all' ? 'danh_sach_tat_ca_doi.xlsx' : `danh_sach_doi_${selectedTeam}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+        }
+
+        window.onload = () => {
+            loadData();
+            document.getElementById('exportExcel').addEventListener('click', exportToExcel);
+        };
+    </script>
+</body>
+
+</html>
